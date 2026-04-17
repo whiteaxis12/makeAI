@@ -5,8 +5,6 @@
 
 ## 目次
 
-- [MCAI](#mcai)
-  - [目次](#目次)
 - [DevelopmentEnviroment](#developmentenviroment)
 
 
@@ -42,3 +40,4 @@ conda install pytorch torchvision torchaudio pytorch-cuda=12.4 -c pytorch -c nvi
 
 pip install mediapipe opencv-python open3d
 ```
+[def]: #目次
