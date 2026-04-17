@@ -1,17 +1,40 @@
-# makeAI
+# MCAI
 
 ※自作AIです。完成まではpythonで作成、スピードを要するならC++に順次移行
+- マーカーレスモーションキャプチャーのAIを作成
 
 ## 目次
 
-- [makeAI](#makeai)
+- [MCAI](#mcai)
   - [目次](#目次)
 - [DevelopmentEnviroment](#developmentenviroment)
 
 
 --------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # DevelopmentEnviroment
 
+- conda 環境python3.11
 
 ```cpp
 // nvidia-smiにてcuda versionを確認。GPUに合わせたpytorchをinstall
