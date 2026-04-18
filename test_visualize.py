@@ -45,7 +45,7 @@ def main():
     normalizer = MixamoNormalizer(BONE_JSON)
     converter  = MixamoConverter()
 
-    image_path = "data/images/sample.jpg"
+    image_path = "data/image/sample.jpg"
     image = cv2.imread(image_path)
 
     # MediaPipe検出（2D座標も取得）
