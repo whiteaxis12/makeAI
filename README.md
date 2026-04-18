@@ -3,7 +3,9 @@
 ※自作AIです。完成まではpythonで作成、スピードを要するならC++に順次移行
 - マーカーレスモーションキャプチャーのAIを作成
 
-
+## 進捗
+- 2026/4/17 土台作り、環境構築
+- 2026/4/18 画像から頂点を取得
 
 ## 目次
 
@@ -41,7 +43,8 @@
 // nvidia-smiにてcuda versionを確認。GPUに合わせたpytorchをinstall
 conda install pytorch torchvision torchaudio pytorch-cuda=12.4 -c pytorch -c nvidia
 
-pip install mediapipe opencv-python open3d
+// 0.10.33はpipellineが不安定(solution Error)、0.10.14を明示的にinstall
+pip install mediapipe==0.10.14
 ```
 
 ---
@@ -64,7 +67,7 @@ pip install mediapipe opencv-python open3d
 
 # Directory
 
-- ざっくりこんな感じで作っていく
+- ざっくりこんな感じ
 
 ```
 

@@ -1,34 +1,43 @@
 import cv2
+import os
 from src.detector import PoseDetector
+from src.converter import MixamoConverter
+from src.exporter import BVHExporter
 
 def main():
-    # 検出器を初期化
-    detector = PoseDetector()
+    detector  = PoseDetector()
+    converter = MixamoConverter()
+    exporter  = BVHExporter(frame_rate=30)
 
-    # 画像パス（ここを変更してください）
     image_path = r"C:\Users\naoki\Downloads\testPose.jpg"
+    output_path = r"C:\Users\naoki\Downloads\sample.bvh"
+        
+        
+    # 出力フォルダ作成
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-    print(f"画像を処理中: {image_path}")
+    print(f"画像を処理中: {image_path}\n")
 
-    # 検出 + 可視化
+    # Step1: 検出
     landmarks, result_image = detector.detect_with_visualization(image_path)
-
     if landmarks is None:
         print("骨格が検出できませんでした")
         return
 
-    # 結果を表示
-    print("\n=== 検出された骨格点 ===")
-    for lm in landmarks:
-        print(f"{lm.name:25s} x={lm.x:7.3f}, y={lm.y:7.3f}, z={lm.z:7.3f}, visibility={lm.visibility:.2f}")
+    # Step2: 変換
+    print("\n=== Mixamoボーン回転角 ===")
+    bone_data = converter.convert(landmarks)
 
-    # 画像を表示
+    # Step3: BVH出力
+    print("\n=== BVH出力 ===")
+    exporter.export(bone_data, output_path)
+
+    # 画像表示
     cv2.imshow("Pose Detection", result_image)
     print("\n[INFO] 何かキーを押すと終了します")
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
-    # リソース解放
     detector.close()
 
 if __name__ == "__main__":

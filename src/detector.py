@@ -3,20 +3,21 @@ import mediapipe as mp
 import numpy as np
 from dataclasses import dataclass
 from typing import Optional
+from mediapipe.tasks import python
+from mediapipe.tasks.python import vision
 
 @dataclass
 class PoseLandmark:
     """1つの骨格点データ"""
     name: str
-    x: float  # 横位置 (0.0〜1.0)
-    y: float  # 縦位置 (0.0〜1.0)
-    z: float  # 深度
-    visibility: float  # 検出信頼度 (0.0〜1.0)
+    x: float
+    y: float
+    z: float
+    visibility: float
 
 class PoseDetector:
     """MediaPipeを使った人体3D骨格検出"""
 
-    # MediaPipeの33点の名前リスト
     LANDMARK_NAMES = [
         "NOSE", "LEFT_EYE_INNER", "LEFT_EYE", "LEFT_EYE_OUTER",
         "RIGHT_EYE_INNER", "RIGHT_EYE", "RIGHT_EYE_OUTER",
@@ -36,37 +37,32 @@ class PoseDetector:
     ]
 
     def __init__(self, min_detection_confidence=0.5, min_tracking_confidence=0.5):
+        # 新しいAPIの書き方
         self.mp_pose = mp.solutions.pose
         self.mp_drawing = mp.solutions.drawing_utils
         self.pose = self.mp_pose.Pose(
-            static_image_mode=True,  # 静止画モード
-            model_complexity=2,      # 精度最高（0/1/2）
+            static_image_mode=True,
+            model_complexity=2,
             min_detection_confidence=min_detection_confidence,
-            min_tracking_confidence=min_tracking_confidence
+            min_tracking_confidence=min_tracking_confidence,
+            enable_segmentation=False
         )
 
     def detect(self, image_path: str) -> Optional[list[PoseLandmark]]:
-        """
-        画像から3D骨格点を検出する
-        Returns: PoseLandmarkのリスト or None（検出失敗時）
-        """
-        # 画像読み込み
         image = cv2.imread(image_path)
         if image is None:
             print(f"[ERROR] 画像が読み込めません: {image_path}")
             return None
 
-        # BGR → RGB変換
         rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-        # 骨格検出
+        rgb.flags.writeable = False
         results = self.pose.process(rgb)
+        rgb.flags.writeable = True
 
         if not results.pose_world_landmarks:
             print("[ERROR] 骨格が検出できませんでした")
             return None
 
-        # 結果をPoseLandmarkに変換
         landmarks = []
         for i, lm in enumerate(results.pose_world_landmarks.landmark):
             landmarks.append(PoseLandmark(
@@ -81,18 +77,20 @@ class PoseDetector:
         return landmarks
 
     def detect_with_visualization(self, image_path: str):
-        """
-        検出結果を画像に描画して返す
-        Returns: (landmarks, 描画済み画像)
-        """
         image = cv2.imread(image_path)
+        if image is None:
+            print(f"[ERROR] 画像が読み込めません: {image_path}")
+            return None, None
+
         rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        rgb.flags.writeable = False
         results = self.pose.process(rgb)
+        rgb.flags.writeable = True
 
         if not results.pose_world_landmarks:
+            print("[ERROR] 骨格が検出できませんでした")
             return None, image
 
-        # 骨格を画像に描画
         self.mp_drawing.draw_landmarks(
             image,
             results.pose_landmarks,
@@ -112,5 +110,4 @@ class PoseDetector:
         return landmarks, image
 
     def close(self):
-        """リソース解放"""
         self.pose.close()
