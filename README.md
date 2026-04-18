@@ -131,4 +131,4 @@ pip install mediapipe==0.10.14
 
 
 - MotionCuptureImage
-<img src="Date/caputure_Image.png" width="750>"
+<img src="Date/caputure_Image.png" alt="sampleimage" width="750">
