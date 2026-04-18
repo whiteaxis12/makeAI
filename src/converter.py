@@ -5,48 +5,39 @@ class MixamoConverter:
     """MediaPipe骨格座標 → Mixamoボーン回転角に変換"""
 
     BONE_MAPPING = {
-    # Hipsは左右の中点方向
-    "Hips":          ("LEFT_HIP",       "RIGHT_HIP"),
+        "Hips":          ("MID_HIP",        "LEFT_HIP"),
+        "Spine":         ("MID_HIP",        "MID_SHOULDER"),
+        "Spine1":        ("MID_HIP",        "MID_SHOULDER"),
+        "Spine2":        ("MID_HIP",        "MID_SHOULDER"),
+        "Neck":          ("MID_SHOULDER",   "MID_EAR"),
+        "Head":          ("MID_EAR",        "NOSE"),
 
-    # Spineは腰中点→肩中点（真上方向）
-    "Spine":         ("LEFT_HIP",       "LEFT_SHOULDER"),
-    "Spine1":        ("LEFT_HIP",       "LEFT_SHOULDER"),
-    "Spine2":        ("LEFT_HIP",       "LEFT_SHOULDER"),
+        "LeftArm":       ("LEFT_SHOULDER",  "LEFT_ELBOW"),
+        "LeftForeArm":   ("LEFT_ELBOW",     "LEFT_WRIST"),
+        "LeftHand":      ("LEFT_WRIST",     "LEFT_INDEX"),
 
-    # Neckは肩中点→耳中点
-    "Neck":          ("LEFT_SHOULDER",  "LEFT_EAR"),
-    # Headは耳→鼻
-    "Head":          ("LEFT_EAR",       "NOSE"),
+        "RightArm":      ("RIGHT_SHOULDER", "RIGHT_ELBOW"),
+        "RightForeArm":  ("RIGHT_ELBOW",    "RIGHT_WRIST"),
+        "RightHand":     ("RIGHT_WRIST",    "RIGHT_INDEX"),
 
-    # 腕：肩→肘→手首
-    "LeftArm":       ("LEFT_SHOULDER",  "LEFT_ELBOW"),
-    "LeftForeArm":   ("LEFT_ELBOW",     "LEFT_WRIST"),
-    "LeftHand":      ("LEFT_WRIST",     "LEFT_INDEX"),
+        "LeftUpLeg":     ("LEFT_HIP",       "LEFT_KNEE"),
+        "LeftLeg":       ("LEFT_KNEE",      "LEFT_ANKLE"),
+        "LeftFoot":      ("LEFT_ANKLE",     "LEFT_HEEL"),
+        "LeftToeBase":   ("LEFT_HEEL",      "LEFT_FOOT_INDEX"),
 
-    "RightArm":      ("RIGHT_SHOULDER", "RIGHT_ELBOW"),
-    "RightForeArm":  ("RIGHT_ELBOW",    "RIGHT_WRIST"),
-    "RightHand":     ("RIGHT_WRIST",    "RIGHT_INDEX"),
+        "RightUpLeg":    ("RIGHT_HIP",      "RIGHT_KNEE"),
+        "RightLeg":      ("RIGHT_KNEE",     "RIGHT_ANKLE"),
+        "RightFoot":     ("RIGHT_ANKLE",    "RIGHT_HEEL"),
+        "RightToeBase":  ("RIGHT_HEEL",     "RIGHT_FOOT_INDEX"),
+    }
 
-    # 脚：腰→膝→足首
-    "LeftUpLeg":     ("LEFT_HIP",       "LEFT_KNEE"),
-    "LeftLeg":       ("LEFT_KNEE",      "LEFT_ANKLE"),
-    "LeftFoot":      ("LEFT_ANKLE",     "LEFT_HEEL"),
-    "LeftToeBase":   ("LEFT_HEEL",      "LEFT_FOOT_INDEX"),
-
-    "RightUpLeg":    ("RIGHT_HIP",      "RIGHT_KNEE"),
-    "RightLeg":      ("RIGHT_KNEE",     "RIGHT_ANKLE"),
-    "RightFoot":     ("RIGHT_ANKLE",    "RIGHT_HEEL"),
-    "RightToeBase":  ("RIGHT_HEEL",     "RIGHT_FOOT_INDEX"),
-}
-
-    # ボーンの位置基準点（中点 or 単点）
     BONE_POSITIONS = {
-        "Hips":         ("LEFT_HIP",       "RIGHT_HIP"),
-        "Spine":        ("LEFT_HIP",       "RIGHT_HIP"),
-        "Spine1":       ("LEFT_HIP",       "RIGHT_HIP"),
-        "Spine2":       ("LEFT_SHOULDER",  "RIGHT_SHOULDER"),
-        "Neck":         ("LEFT_SHOULDER",  "RIGHT_SHOULDER"),
-        "Head":         ("LEFT_SHOULDER",  "RIGHT_SHOULDER"),
+        "Hips":         ("MID_HIP",        None),
+        "Spine":        ("MID_HIP",        None),
+        "Spine1":       ("MID_HIP",        None),
+        "Spine2":       ("MID_SHOULDER",   None),
+        "Neck":         ("MID_SHOULDER",   None),
+        "Head":         ("MID_EAR",        None),
         "LeftArm":      ("LEFT_SHOULDER",  None),
         "LeftForeArm":  ("LEFT_ELBOW",     None),
         "LeftHand":     ("LEFT_WRIST",     None),
@@ -64,46 +55,65 @@ class MixamoConverter:
     }
 
     BIND_POSE = {
-    "Hips":          np.array([-1,  0,  0]),  # 右→左方向
-    "Spine":         np.array([ 0,  1,  0]),  # 上方向
-    "Spine1":        np.array([ 0,  1,  0]),
-    "Spine2":        np.array([ 0,  1,  0]),
-    "Neck":          np.array([ 0,  1,  0]),
-    "Head":          np.array([ 0,  1,  0]),
+        "Hips":          np.array([ 1,  0,  0]),
+        "Spine":         np.array([ 0,  1,  0]),
+        "Spine1":        np.array([ 0,  1,  0]),
+        "Spine2":        np.array([ 0,  1,  0]),
+        "Neck":          np.array([ 0,  1,  0]),
+        "Head":          np.array([ 0,  1,  0]),
 
-    "LeftArm":       np.array([-1,  0,  0]),  # 左方向
-    "LeftForeArm":   np.array([-1,  0,  0]),
-    "LeftHand":      np.array([-1,  0,  0]),
+        "LeftArm":       np.array([-1,  0,  0]),
+        "LeftForeArm":   np.array([-1,  0,  0]),
+        "LeftHand":      np.array([-1,  0,  0]),
 
-    "RightArm":      np.array([ 1,  0,  0]),  # 右方向
-    "RightForeArm":  np.array([ 1,  0,  0]),
-    "RightHand":     np.array([ 1,  0,  0]),
+        "RightArm":      np.array([ 1,  0,  0]),
+        "RightForeArm":  np.array([ 1,  0,  0]),
+        "RightHand":     np.array([ 1,  0,  0]),
 
-    "LeftUpLeg":     np.array([ 0, -1,  0]),  # 下方向
-    "LeftLeg":       np.array([ 0, -1,  0]),
-    "LeftFoot":      np.array([ 0, -1,  0]),
-    "LeftToeBase":   np.array([ 0,  0,  1]),
+        "LeftUpLeg":     np.array([ 0, -1,  0]),
+        "LeftLeg":       np.array([ 0, -1,  0]),
+        "LeftFoot":      np.array([ 0, -1,  0]),
+        "LeftToeBase":   np.array([ 0,  0,  1]),
 
-    "RightUpLeg":    np.array([ 0, -1,  0]),
-    "RightLeg":      np.array([ 0, -1,  0]),
-    "RightFoot":     np.array([ 0, -1,  0]),
-    "RightToeBase":  np.array([ 0,  0,  1]),
-}
-    
+        "RightUpLeg":    np.array([ 0, -1,  0]),
+        "RightLeg":      np.array([ 0, -1,  0]),
+        "RightFoot":     np.array([ 0, -1,  0]),
+        "RightToeBase":  np.array([ 0,  0,  1]),
+    }
+
     CONFIDENCE_THRESHOLD = 0.3
 
     def __init__(self):
         pass
 
     def _get_position(self, landmarks: dict, name: str) -> np.ndarray:
-        """ランドマーク名から3D座標を取得"""
         lm = landmarks.get(name)
         if lm is None:
             return np.zeros(3)
         return np.array([-lm.x, -lm.y, -lm.z])
 
+    def _build_virtual_landmarks(self, lm_dict: dict) -> dict:
+        """中点などの仮想ランドマークを追加"""
+        virtual = dict(lm_dict)
+
+        def make_midpoint(name, n1, n2):
+            if n1 in lm_dict and n2 in lm_dict:
+                p1 = self._get_position(lm_dict, n1)
+                p2 = self._get_position(lm_dict, n2)
+                mid = (p1 + p2) / 2.0
+                virtual[name] = PoseLandmark(
+                    name=name,
+                    x=-mid[0], y=-mid[1], z=-mid[2],
+                    visibility=min(lm_dict[n1].visibility, lm_dict[n2].visibility)
+                )
+
+        make_midpoint("MID_HIP",      "LEFT_HIP",      "RIGHT_HIP")
+        make_midpoint("MID_SHOULDER", "LEFT_SHOULDER",  "RIGHT_SHOULDER")
+        make_midpoint("MID_EAR",      "LEFT_EAR",       "RIGHT_EAR")
+
+        return virtual
+
     def _get_bone_position(self, lm_dict: dict, bone_name: str) -> np.ndarray:
-        """ボーンの位置を取得（中点 or 単点）"""
         p1_name, p2_name = self.BONE_POSITIONS[bone_name]
         p1 = self._get_position(lm_dict, p1_name)
         if p2_name is None:
@@ -160,7 +170,11 @@ class MixamoConverter:
 
     def convert(self, landmarks: list[PoseLandmark]) -> dict:
         lm_dict = {lm.name: lm for lm in landmarks}
-        result  = {}
+
+        # 仮想ランドマークを追加
+        lm_dict = self._build_virtual_landmarks(lm_dict)
+
+        result = {}
 
         for bone_name, (parent_name, child_name) in self.BONE_MAPPING.items():
             parent_pos  = self._get_position(lm_dict, parent_name)
@@ -170,7 +184,6 @@ class MixamoConverter:
             R           = self._rotation_matrix_from_vectors(bind_dir, current_dir)
             rotation    = self._matrix_to_euler_zxy(R)
 
-            # 正しい位置を使用
             bone_pos = self._get_bone_position(lm_dict, bone_name)
 
             parent_lm  = lm_dict.get(parent_name)
