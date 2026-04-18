@@ -3,8 +3,6 @@ import mediapipe as mp
 import numpy as np
 from dataclasses import dataclass
 from typing import Optional
-from mediapipe.tasks import python
-from mediapipe.tasks.python import vision
 
 @dataclass
 class PoseLandmark:
@@ -36,31 +34,32 @@ class PoseDetector:
         "LEFT_FOOT_INDEX", "RIGHT_FOOT_INDEX"
     ]
 
-    def __init__(self, min_detection_confidence=0.5, min_tracking_confidence=0.5):
-        # 新しいAPIの書き方
-        self.mp_pose = mp.solutions.pose
+    def __init__(self,
+                 static_image_mode: bool = False,
+                 model_complexity: int = 2,
+                 min_detection_confidence: float = 0.5,
+                 min_tracking_confidence: float = 0.5):
+
+        self.mp_pose   = mp.solutions.pose
         self.mp_drawing = mp.solutions.drawing_utils
         self.pose = self.mp_pose.Pose(
-            static_image_mode=True,
-            model_complexity=2,
+            static_image_mode=static_image_mode,
+            model_complexity=model_complexity,
             min_detection_confidence=min_detection_confidence,
-            min_tracking_confidence=min_tracking_confidence,
-            enable_segmentation=False
+            min_tracking_confidence=min_tracking_confidence
         )
 
-    def detect(self, image_path: str) -> Optional[list[PoseLandmark]]:
-        image = cv2.imread(image_path)
-        if image is None:
-            print(f"[ERROR] 画像が読み込めません: {image_path}")
-            return None
-
-        rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    def detect_frame(self, frame) -> Optional[list[PoseLandmark]]:
+        """
+        フレーム（numpy配列）から骨格検出
+        動画・カメラ両方で使用
+        """
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         rgb.flags.writeable = False
         results = self.pose.process(rgb)
         rgb.flags.writeable = True
 
         if not results.pose_world_landmarks:
-            print("[ERROR] 骨格が検出できませんでした")
             return None
 
         landmarks = []
@@ -72,27 +71,23 @@ class PoseDetector:
                 z=lm.z,
                 visibility=lm.visibility
             ))
-
-        print(f"[OK] {len(landmarks)}点の骨格を検出しました")
         return landmarks
 
-    def detect_with_visualization(self, image_path: str):
-        image = cv2.imread(image_path)
-        if image is None:
-            print(f"[ERROR] 画像が読み込めません: {image_path}")
-            return None, None
-
-        rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    def detect_frame_with_visualization(self, frame):
+        """
+        フレームから骨格検出＋描画
+        Returns: (landmarks, 描画済みフレーム)
+        """
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         rgb.flags.writeable = False
         results = self.pose.process(rgb)
         rgb.flags.writeable = True
 
         if not results.pose_world_landmarks:
-            print("[ERROR] 骨格が検出できませんでした")
-            return None, image
+            return None, frame
 
         self.mp_drawing.draw_landmarks(
-            image,
+            frame,
             results.pose_landmarks,
             self.mp_pose.POSE_CONNECTIONS
         )
@@ -106,8 +101,23 @@ class PoseDetector:
                 z=lm.z,
                 visibility=lm.visibility
             ))
+        return landmarks, frame
 
-        return landmarks, image
+    def detect(self, image_path: str) -> Optional[list[PoseLandmark]]:
+        """静止画から骨格検出"""
+        image = cv2.imread(image_path)
+        if image is None:
+            print(f"[ERROR] 画像が読み込めません: {image_path}")
+            return None
+        return self.detect_frame(image)
+
+    def detect_with_visualization(self, image_path: str):
+        """静止画から骨格検出＋描画"""
+        image = cv2.imread(image_path)
+        if image is None:
+            print(f"[ERROR] 画像が読み込めません: {image_path}")
+            return None, None
+        return self.detect_frame_with_visualization(image)
 
     def close(self):
         self.pose.close()
