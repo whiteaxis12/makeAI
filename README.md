@@ -48,6 +48,9 @@ conda install pytorch torchvision torchaudio pytorch-cuda=12.4 -c pytorch -c nvi
 
 // 0.10.33はpipellineが不安定(solution Error)、0.10.14を明示的にinstall
 pip install mediapipe==0.10.14
+
+// リターゲットに必要なFBXを読み込む
+pip install pyassimp
 ```
 
 ---
@@ -90,6 +93,8 @@ pip install mediapipe==0.10.14
 │   ├── converter.py      # 骨格データ → BVH変換
     ├── visualizer.py     # 確認用可視化
     └── exporter.py       # BVH/FBXファイル出力
+    ├── normalizer.py     ← ：Mixamoスケールに正規化
+    └── fbx_reader.py     ← ：MixamoFBXのボーン長さ読み込み
 │
 ├── 📁 notebooks/               # Jupyter Notebook（実験・検証用）
 │   └── 01_prototype.ipynb
