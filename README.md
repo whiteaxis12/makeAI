@@ -5,9 +5,21 @@
 
 ## 進捗
 - 2026/4/17 土台作り、環境構築
-- 2026/4/18 画像から頂点を取得→vbhファイル出力、blenderまで持っていく
+- 2026/4/18   :
+  - 画像から頂点を取得
+  - VBHファイル出力
+  - オイラー回転適用
+  - movie対応
+  - Animation出力→VBH
+  - mixsamoRig
+    - FBX読み込み→不可
+    - blender経由、FBX読み込み→可
+  - スケール適用、リターゲット
 
-- 次、オイラー回転修正、boneオフセット修正
+## 課題
+- FBX読み込み、吐出しの強化(blenderを参考に)
+- MotionCaptureの機械学習
+
 
 ## 目次
 
@@ -140,3 +152,6 @@ conda install -c conda-forge assimp
 
 - MotionCuptureImage
 <img src="Date/caputure_Image.png" alt="sampleimage" width="750">
+
+- MotionCaptureMovie
+<img src="Date/moviePosition.gif" alt="sampleimage" width="750">
