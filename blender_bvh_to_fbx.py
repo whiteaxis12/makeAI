@@ -77,15 +77,21 @@ def get_frame_range(bvh_armature):
     print(f"[OK] フレーム範囲: {frame_start} - {frame_end}")
     return max(frame_start + 1, 1), frame_end
 
+def get_bone_rest_offset(mixamo_armature):
+    """各ボーンのRestPoseオフセットをクォータニオンで取得"""
+    offsets = {}
+    for bone in mixamo_armature.data.bones:
+        if bone.parent:
+            local = bone.parent.matrix_local.inverted() @ bone.matrix_local
+            offsets[bone.name] = local.to_quaternion()
+    return offsets
+
 def debug_shoulder_rest(mixamo_armature):
-    """LeftShoulderのRestPoseの実際の行列を確認"""
     print("\n=== LeftShoulder RestPose詳細 ===")
     bone = mixamo_armature.data.bones.get("mixamorig:LeftShoulder")
     if bone:
         print(f"  head_local: {[round(v,3) for v in bone.head_local]}")
         print(f"  tail_local: {[round(v,3) for v in bone.tail_local]}")
-        print(f"  matrix_local:\n{bone.matrix_local}")
-
         if bone.parent:
             local = bone.parent.matrix_local.inverted() @ bone.matrix_local
             euler = local.to_euler('ZXY')
@@ -96,15 +102,13 @@ def debug_shoulder_rest(mixamo_armature):
     if bone:
         print(f"  head_local: {[round(v,3) for v in bone.head_local]}")
         print(f"  tail_local: {[round(v,3) for v in bone.tail_local]}")
-        print(f"  matrix_local:\n{bone.matrix_local}")
-
         if bone.parent:
             local = bone.parent.matrix_local.inverted() @ bone.matrix_local
             euler = local.to_euler('ZXY')
             print(f"  親からの相対オイラー(ZXY): ({math.degrees(euler.x):.2f}, {math.degrees(euler.y):.2f}, {math.degrees(euler.z):.2f})")
 
 def retarget_animation(mixamo_armature, bvh_armature, frame_start: int, frame_end: int):
-    """BVHのアニメーションをMixamoリグに転写（補正なし）"""
+    """BVHのアニメーションをMixamoリグに転写"""
 
     BONE_MAP = {
         "Hips":          "mixamorig:Hips",
@@ -131,6 +135,15 @@ def retarget_animation(mixamo_armature, bvh_armature, frame_start: int, frame_en
         "RightToeBase":  "mixamorig:RightToeBase",
     }
 
+    # 腕のみRestPoseオフセット補正を適用
+    ARM_BONES = {
+        "LeftShoulder", "LeftArm", "LeftForeArm", "LeftHand",
+        "RightShoulder", "RightArm", "RightForeArm", "RightHand",
+    }
+
+    # RestPoseオフセットを取得
+    rest_offsets = get_bone_rest_offset(mixamo_armature)
+
     bpy.context.scene.frame_start = frame_start
     bpy.context.scene.frame_end   = frame_end
 
@@ -152,9 +165,22 @@ def retarget_animation(mixamo_armature, bvh_armature, frame_start: int, frame_en
             if bvh_bone is None or mixamo_bone is None:
                 continue
 
-            mixamo_bone.rotation_mode  = 'ZXY'
-            mixamo_bone.rotation_euler = bvh_bone.rotation_euler.copy()
-            mixamo_bone.keyframe_insert(data_path="rotation_euler", frame=frame)
+            if bvh_bone_name in ARM_BONES:
+                # 腕ボーン：RestPoseオフセット補正あり
+                bvh_quat    = mathutils.Euler(bvh_bone.rotation_euler, 'ZXY').to_quaternion()
+                offset_quat = rest_offsets.get(mixamo_bone_name)
+                if offset_quat:
+                    final_quat = offset_quat.inverted() @ bvh_quat
+                else:
+                    final_quat = bvh_quat
+                mixamo_bone.rotation_mode       = 'QUATERNION'
+                mixamo_bone.rotation_quaternion = final_quat
+                mixamo_bone.keyframe_insert(data_path="rotation_quaternion", frame=frame)
+            else:
+                # 腕以外：シンプルにZXYオイラーで転写
+                mixamo_bone.rotation_mode  = 'ZXY'
+                mixamo_bone.rotation_euler = bvh_bone.rotation_euler.copy()
+                mixamo_bone.keyframe_insert(data_path="rotation_euler", frame=frame)
 
             if bvh_bone_name == "Hips":
                 mixamo_bone.location = bvh_bone.location.copy()
