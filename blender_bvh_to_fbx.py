@@ -81,28 +81,28 @@ def retarget_animation(mixamo_armature, bvh_armature, frame_start: int, frame_en
     """BVHのアニメーションをMixamoリグに転写"""
 
     BONE_MAP = {
-        "Hips":         "mixamorig:Hips",
-        "Spine":        "mixamorig:Spine",
-        "Spine1":       "mixamorig:Spine1",
-        "Spine2":       "mixamorig:Spine2",
-        "Neck":         "mixamorig:Neck",
-        "Head":         "mixamorig:Head",
-        "LeftShoulder":  "mixamorig:LeftShoulder",   # ← 追加
-        "LeftArm":      "mixamorig:LeftArm",
-        "LeftForeArm":  "mixamorig:LeftForeArm",
-        "LeftHand":     "mixamorig:LeftHand",
-        "RightShoulder": "mixamorig:RightShoulder",  # ← 追加
-        "RightArm":     "mixamorig:RightArm",
-        "RightForeArm": "mixamorig:RightForeArm",
-        "RightHand":    "mixamorig:RightHand",
-        "LeftUpLeg":    "mixamorig:LeftUpLeg",
-        "LeftLeg":      "mixamorig:LeftLeg",
-        "LeftFoot":     "mixamorig:LeftFoot",
-        "LeftToeBase":  "mixamorig:LeftToeBase",
-        "RightUpLeg":   "mixamorig:RightUpLeg",
-        "RightLeg":     "mixamorig:RightLeg",
-        "RightFoot":    "mixamorig:RightFoot",
-        "RightToeBase": "mixamorig:RightToeBase",
+        "Hips":          "mixamorig:Hips",
+        "Spine":         "mixamorig:Spine",
+        "Spine1":        "mixamorig:Spine1",
+        "Spine2":        "mixamorig:Spine2",
+        "Neck":          "mixamorig:Neck",
+        "Head":          "mixamorig:Head",
+        "LeftShoulder":  "mixamorig:LeftShoulder",
+        "LeftArm":       "mixamorig:LeftArm",
+        "LeftForeArm":   "mixamorig:LeftForeArm",
+        "LeftHand":      "mixamorig:LeftHand",
+        "RightShoulder": "mixamorig:RightShoulder",
+        "RightArm":      "mixamorig:RightArm",
+        "RightForeArm":  "mixamorig:RightForeArm",
+        "RightHand":     "mixamorig:RightHand",
+        "LeftUpLeg":     "mixamorig:LeftUpLeg",
+        "LeftLeg":       "mixamorig:LeftLeg",
+        "LeftFoot":      "mixamorig:LeftFoot",
+        "LeftToeBase":   "mixamorig:LeftToeBase",
+        "RightUpLeg":    "mixamorig:RightUpLeg",
+        "RightLeg":      "mixamorig:RightLeg",
+        "RightFoot":     "mixamorig:RightFoot",
+        "RightToeBase":  "mixamorig:RightToeBase",
     }
 
     bpy.context.scene.frame_start = frame_start
@@ -126,15 +126,10 @@ def retarget_animation(mixamo_armature, bvh_armature, frame_start: int, frame_en
             if bvh_bone is None or mixamo_bone is None:
                 continue
 
-            euler = bvh_bone.rotation_euler.copy()
-            quat  = mathutils.Euler(euler, bvh_bone.rotation_mode).to_quaternion()
+            mixamo_bone.rotation_mode  = 'ZXY'
+            mixamo_bone.rotation_euler = bvh_bone.rotation_euler.copy()
+            mixamo_bone.keyframe_insert(data_path="rotation_euler", frame=frame)
 
-            mixamo_bone.rotation_mode = 'ZXY'  # ← QUATERNIONからZXYに変更
-            mixamo_bone.rotation_euler = bvh_bone.rotation_euler.copy()  # ← そのままコピー
-            mixamo_bone.keyframe_insert(
-                data_path="rotation_euler",  # ← rotation_quaternionからrotation_eulerに変更
-                frame=frame
-            )
             if bvh_bone_name == "Hips":
                 mixamo_bone.location = bvh_bone.location.copy()
                 mixamo_bone.keyframe_insert(data_path="location", frame=frame)
@@ -143,6 +138,11 @@ def retarget_animation(mixamo_armature, bvh_armature, frame_start: int, frame_en
             print(f"\r転写中: {frame}/{frame_end}", end="")
 
     print(f"\n[OK] アニメーション転写完了")
+    action = mixamo_armature.animation_data.action
+    print(f"[INFO] アクション名: {action.name}")
+    print(f"[INFO] フレーム範囲: {action.frame_range[0]} - {action.frame_range[1]}")
+    print(f"[INFO] FCurve数: {len(action.fcurves)}")
+
 def remove_bvh_armature(bvh_armature):
     bpy.ops.object.select_all(action='DESELECT')
     bvh_armature.select_set(True)
@@ -161,6 +161,10 @@ def export_fbx(output_path: str):
         if obj.type in ('ARMATURE', 'MESH'):
             obj.select_set(True)
 
+    bpy.context.view_layer.objects.active = next(
+        obj for obj in bpy.data.objects if obj.type == 'ARMATURE'
+    )
+
     bpy.ops.export_scene.fbx(
         filepath=abs_path,
         use_selection=True,
@@ -170,21 +174,20 @@ def export_fbx(output_path: str):
         bake_anim_use_all_actions=False,
         bake_anim_force_startend_keying=True,
         bake_anim_step=1.0,
+        bake_anim_simplify_factor=0.0,
         add_leaf_bones=False,
         axis_forward='-Z',
-        axis_up='Y',
-        bake_anim_simplify_factor=0.0,  # ← 追加：簡略化なし
+        axis_up='Y'
     )
     print(f"[OK] FBX出力: {abs_path}")
-    
+
 def debug_rest_pose(mixamo_armature):
-    """MixamoのRestPoseのボーン方向を確認"""
     print("\n=== Mixamo RestPose ボーン方向 ===")
     for bone in mixamo_armature.data.bones:
         if bone.name in ["mixamorig:LeftArm", "mixamorig:RightArm",
-                            "mixamorig:LeftUpLeg", "mixamorig:RightUpLeg"]:
-            head = bone.head_local
-            tail = bone.tail_local
+                         "mixamorig:LeftUpLeg", "mixamorig:RightUpLeg"]:
+            head      = bone.head_local
+            tail      = bone.tail_local
             direction = (tail - head).normalized()
             print(f"  {bone.name}: head={[round(v,3) for v in head]} tail={[round(v,3) for v in tail]} dir={[round(v,3) for v in direction]}")
 
@@ -196,9 +199,10 @@ def main():
     clear_scene()
 
     mixamo_armature = import_mixamo_fbx(MIXAMO_FBX_PATH)
-    debug_rest_pose(mixamo_armature)  # ← 追加
     if mixamo_armature is None:
         return
+
+    debug_rest_pose(mixamo_armature)
 
     bvh_armature = import_bvh(BVH_PATH)
     if bvh_armature is None:
