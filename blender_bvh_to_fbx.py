@@ -10,6 +10,7 @@ BVHをFBXに変換してUE5用に出力
 import bpy
 import os
 import mathutils
+import math
 
 # ====================================
 # 設定欄 ← ここを編集してください
@@ -45,7 +46,7 @@ def import_bvh(path: str):
     abs_path = os.path.abspath(path)
     bpy.ops.import_anim.bvh(
         filepath=abs_path,
-        axis_forward='-Z',
+        axis_forward='Z',
         axis_up='Y',
         rotate_mode='NATIVE',
         global_scale=0.01
@@ -102,6 +103,12 @@ def retarget_animation(mixamo_armature, bvh_armature, frame_start: int, frame_en
         "RightToeBase": "mixamorig:RightToeBase",
     }
 
+    # 腕のみX軸180度補正が必要なボーン
+    ARM_BONES = {
+        "LeftArm", "LeftForeArm", "LeftHand",
+        "RightArm", "RightForeArm", "RightHand",
+    }
+
     bpy.context.scene.frame_start = frame_start
     bpy.context.scene.frame_end   = frame_end
 
@@ -125,6 +132,9 @@ def retarget_animation(mixamo_armature, bvh_armature, frame_start: int, frame_en
             quat  = mathutils.Euler(euler, bvh_bone.rotation_mode).to_quaternion()
             print(f"  {bvh_name}: euler={[round(v*57.3,2) for v in euler]} quat={[round(v,3) for v in quat]}")
 
+    # X軸180度補正クォータニオン
+    correction_x180 = mathutils.Quaternion((1, 0, 0), math.pi)  # ← mathutils.pi → math.pi
+
     for frame in range(frame_start, frame_end + 1):
         bpy.context.scene.frame_set(frame)
         bpy.context.view_layer.update()
@@ -136,9 +146,12 @@ def retarget_animation(mixamo_armature, bvh_armature, frame_start: int, frame_en
             if bvh_bone is None or mixamo_bone is None:
                 continue
 
-            # オイラー角をクォータニオンに変換して転写
             euler = bvh_bone.rotation_euler.copy()
             quat  = mathutils.Euler(euler, bvh_bone.rotation_mode).to_quaternion()
+
+            # 腕のみX軸180度補正を適用
+            if bvh_bone_name in ARM_BONES:
+                quat = correction_x180 @ quat
 
             mixamo_bone.rotation_mode       = 'QUATERNION'
             mixamo_bone.rotation_quaternion = quat
@@ -188,6 +201,17 @@ def export_fbx(output_path: str):
         axis_up='Y'
     )
     print(f"[OK] FBX出力: {abs_path}")
+    
+def debug_rest_pose(mixamo_armature):
+    """MixamoのRestPoseのボーン方向を確認"""
+    print("\n=== Mixamo RestPose ボーン方向 ===")
+    for bone in mixamo_armature.data.bones:
+        if bone.name in ["mixamorig:LeftArm", "mixamorig:RightArm",
+                            "mixamorig:LeftUpLeg", "mixamorig:RightUpLeg"]:
+            head = bone.head_local
+            tail = bone.tail_local
+            direction = (tail - head).normalized()
+            print(f"  {bone.name}: head={[round(v,3) for v in head]} tail={[round(v,3) for v in tail]} dir={[round(v,3) for v in direction]}")
 
 def main():
     print("=" * 50)
@@ -197,6 +221,7 @@ def main():
     clear_scene()
 
     mixamo_armature = import_mixamo_fbx(MIXAMO_FBX_PATH)
+    debug_rest_pose(mixamo_armature)  # ← 追加
     if mixamo_armature is None:
         return
 
