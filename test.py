@@ -6,17 +6,15 @@ from src.exporter import BVHExporter
 from src.fbx_reader import FBXReader
 
 def test_fbx_reader():
-    """FBX読み込みテスト"""
-    fbx_path = r"C:\Users\naoki\Downloads\mixamo_character.fbx"
-    reader   = FBXReader(fbx_path)
 
-    if reader.load():
-        print("\n=== ボーン長さ一覧 ===")
-        for name, length in reader.get_all_bone_lengths().items():
-            print(f"{name:30s} {length:.4f}")
-        reader.unload()
-    else:
-        print("[ERROR] FBX読み込み失敗")
+    FrameRate = 24
+    deltaTime = 1 / FrameRate
+    SetFrameRate = 2
+    CurrentDeltatime = 0
+
+    for i in range(100):
+        CurrentDeltatime += deltaTime * SetFrameRate 
+        print(i, CurrentDeltatime)
 
 # mainの最初に追加
 if __name__ == "__main__":
