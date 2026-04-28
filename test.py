@@ -15,8 +15,9 @@ def test_fbx_reader():
 
     for i in range(24):
         time += deltaTime
+        NewTime = time * NewFps
         PhaseFrameRate += deltaTime * NewFps 
-        print(f"{i=}, {time=}, {PhaseFrameRate=}")
+        print(f"{i=}, {time=}, {NewTime=}")
 
 # mainの最初に追加
 if __name__ == "__main__":
